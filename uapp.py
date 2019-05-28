@@ -1,8 +1,9 @@
 import json
 from threading import Lock
 import requests
-from flask import Flask
+from flask import Flask, Response
 from flask_cors import CORS
+from sys import argv
 
 # Lock to populate queue
 populate_lock = Lock()
@@ -44,6 +45,7 @@ def pokeapi():
 
     # Populate small array, to return just 18 elements.
     poke_array = []
+    ret = Response(mimetype='application/json')
     # Check if populate is locked
     if populate_lock.locked():
         for i in range(18):
@@ -52,23 +54,28 @@ def pokeapi():
                 'name': 'waiting for a pokemon'
             })
         # return dummy list with info about API
-        return json.dumps(poke_array)
+        ret.data = json.dumps(poke_array)
+    else:
+        global offset, max_element
+        # populate array with pokemon info.
+        for i in range(18):
+            # Boundary condition. Run circular.
+            current_index = (i + offset) % max_element
+            poke_array.append({
+                'id': queue[current_index]['id'],
+                'name': queue[current_index]['name']
+            })
+        # Set boundary condition, to avoid endless increment.
+        offset = offset + 1 if offset + 1 < max_element else 0
 
-    global offset, max_element
-    # populate array with pokemon info.
-    for i in range(18):
-        # Boundary condition. Run circular.
-        current_index = (i + offset) % max_element
-        poke_array.append({
-            'id': queue[current_index]['id'],
-            'name': queue[current_index]['name']
-        })
-    # Set boundary condition, to avoid endless increment.
-    offset = offset + 1 if offset + 1 < max_element else 0
-
-    # return JSON object service.
-    return json.dumps(poke_array)
+        # return JSON object service.
+        ret.data = json.dumps(poke_array)
+    return ret
 
 
 if __name__ == '__main__':
-    uapp.run(debug=True, port=5081)
+    if len(argv) == 2:
+        port = argv[1]
+    else:
+        port = 5081
+    uapp.run(debug=True, port=port)
