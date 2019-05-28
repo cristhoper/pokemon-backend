@@ -30,7 +30,7 @@ data = pokedata.json()
 for pokemon in data['results']:
     p_id = str(pokemon['url']).split('/')[6]
     queue.append({'id': p_id, 'name': pokemon['name']})
-offset = 950
+offset = 0
 
 # Unlock queue, allowing connections.
 populate_lock.release()
@@ -41,14 +41,21 @@ def pokeapi():
     """
     Endpoint to get 18 elements, moving inside queue one by one.
     """
-    # Check if populate is locked
-    if populate_lock.locked():
-        return
-
-    global offset, max_element
 
     # Populate small array, to return just 18 elements.
     poke_array = []
+    # Check if populate is locked
+    if populate_lock.locked():
+        for i in range(18):
+            poke_array.append({
+                'id': '-',
+                'name': 'waiting for a pokemon'
+            })
+        # return dummy list with info about API
+        return json.dumps(poke_array)
+
+    global offset, max_element
+    # populate array with pokemon info.
     for i in range(18):
         # Boundary condition. Run circular.
         current_index = (i + offset) % max_element
@@ -60,8 +67,7 @@ def pokeapi():
     offset = offset + 1 if offset + 1 < max_element else 0
 
     # return JSON object service.
-    ret = json.dumps(poke_array)
-    return ret
+    return json.dumps(poke_array)
 
 
 if __name__ == '__main__':
