@@ -31,6 +31,7 @@ data = pokedata.json()
 for pokemon in data['results']:
     p_id = str(pokemon['url']).split('/')[6]
     queue.append({'id': p_id, 'name': pokemon['name']})
+queue = sorted(queue, key=lambda x: x['name'])
 offset = 0
 
 # Unlock queue, allowing connections.
